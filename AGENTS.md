@@ -16,16 +16,31 @@ changing dependencies or loading behavior.
 
 ## Build, Test, and Development Commands
 
-Open `renderer-3d.html` in a WebGL-enabled browser to run locally. Keep `css/`
+On a computer, open `renderer-3d.html` in a WebGL-enabled browser to run locally. Keep `css/`
 and `js/` alongside it. No build step or server is required.
 
 Use Node.js 18 or newer for development commands:
 
 - `npm ci`: install the pinned development formatter.
+- `npm run build`: generate `dist/forma-3d.html` with all CSS and JavaScript embedded;
+  uses Node's built-in modules and requires no package installation.
 - `npm test`: run Node's built-in test suite; no installed dependencies required.
 - `npm run format`: format the source files and listed documentation with Prettier.
 - `npm run format:check`: check formatting without changing files.
 - `npx prettier --check AGENTS.md`: check this guide, which the format scripts omit.
+
+## Phone Distribution
+
+For Android Chrome, copy only `dist/forma-3d.html` to the phone and open it with
+Chrome. Opening the source HTML on a phone can fail to load neighboring CSS and
+JavaScript files. The bundled file removes those external dependencies, but its
+viewer must still execute JavaScript and support WebGL.
+
+Keep development files separate in `css/` and `js/`. Regenerate the standalone
+file with `npm run build` after application changes, before distributing it.
+Do not edit `dist/forma-3d.html` directly; `dist/` is generated and ignored by Git.
+The build must preserve script order and run inline scripts after the DOM and
+templates, since inline scripts do not honor `defer`.
 
 ## Coding Style & Naming Conventions
 

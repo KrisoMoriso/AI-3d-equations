@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
+const { buildStandaloneHtml } = require('../scripts/build-standalone.cjs');
 
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -100,7 +101,7 @@ test('HTML references existing classic scripts in dependency order', () => {
   assert.ok(read('css/styles.css').length > 0);
 });
 
-function createPage({ webgl = false } = {}) {
+function createPage({ webgl = false, standalone = false } = {}) {
   const frames = [];
   const drawing = [];
   const uploads = [];
@@ -303,8 +304,13 @@ function createPage({ webgl = false } = {}) {
     clearTimeout() {},
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
   });
-  const scripts = [...read('renderer-3d.html').matchAll(/<script\s+src="([^"]+)"/g)];
-  for (const [, file] of scripts) vm.runInContext(read(file), page, { filename: file });
+  if (standalone) {
+    const scripts = [...buildStandaloneHtml().matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    for (const [, source] of scripts) vm.runInContext(source, page);
+  } else {
+    const scripts = [...read('renderer-3d.html').matchAll(/<script\s+src="([^"]+)"/g)];
+    for (const [, file] of scripts) vm.runInContext(read(file), page, { filename: file });
+  }
   const flushBuild = async () => {
     for (let i = 0; i < 100 && vm.runInContext('building', page); i++) {
       frames.splice(0).forEach((callback) => callback(i * 16));
@@ -917,4 +923,41 @@ test('point picking ignores the section plane and PNG export records the enabled
     false,
   );
   assert.ok(app.drawing.some((call) => call.primitive === 'POINTS'));
+});
+
+test('standalone HTML embeds every asset in dependency order after the DOM', () => {
+  const html = buildStandaloneHtml();
+  assert.doesNotMatch(html, /<script\s+[^>]*src=/);
+  assert.doesNotMatch(html, /<link\s+rel="stylesheet"/);
+  assert.ok(html.includes(read('css/styles.css')));
+  const originals = [...read('renderer-3d.html').matchAll(/<script\s+src="([^"]+)"/g)].map(
+    ([, file]) => file,
+  );
+  const sources = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(([, source]) => source);
+  assert.equal(sources.length, originals.length);
+  originals.forEach((file, index) => {
+    assert.ok(sources[index].includes('// Source: ' + file));
+    assert.ok(sources[index].includes(read(file)));
+    new vm.Script(sources[index], { filename: file });
+  });
+  assert.ok(html.indexOf('<script>') > html.indexOf('id="canvas"'));
+  assert.ok(html.indexOf('<script>') > html.indexOf('id="equationTemplate"'));
+  assert.ok(html.includes('Przekrój powierzchni'));
+});
+
+test('standalone startup renders multiple equations and preserves sections and point picking', async () => {
+  const app = createPage({ webgl: true, standalone: true });
+  await app.flushBuild();
+  vm.runInContext(
+    "activeEquation().source = '0'; addEquation('1', 'explicit', false); build()",
+    app.page,
+  );
+  await app.flushBuild();
+  assert.equal(vm.runInContext('visibleSurfaces().length', app.page), 2);
+  app.element('sectionEnabled').checked = true;
+  app.element('sectionEnabled').onchange();
+  assert.equal(vm.runInContext('crossSection.results.length', app.page), 2);
+  vm.runInContext('inspectPoint(520, 330); pinSelectedPoint()', app.page);
+  assert.equal(vm.runInContext('selectedPoint.equationId', app.page), 2);
+  assert.equal(vm.runInContext('pinnedPoints.length', app.page), 1);
 });

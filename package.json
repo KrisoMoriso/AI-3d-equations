@@ -4,9 +4,10 @@
   "private": true,
   "description": "Offline WebGL renderer for explicit and implicit mathematical surfaces.",
   "scripts": {
+    "build": "node scripts/build-standalone.cjs",
     "test": "node --test tests/renderer.test.cjs",
-    "format": "prettier --write renderer-3d.html css js tests README.md package.json .prettierrc.json",
-    "format:check": "prettier --check renderer-3d.html css js tests README.md package.json .prettierrc.json"
+    "format": "prettier --write renderer-3d.html css js scripts tests README.md package.json .prettierrc.json",
+    "format:check": "prettier --check renderer-3d.html css js scripts tests README.md package.json .prettierrc.json"
   },
   "devDependencies": {
     "prettier": "3.6.2"

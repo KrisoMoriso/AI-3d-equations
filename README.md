@@ -6,9 +6,29 @@ no runtime dependencies.
 
 ## Run
 
-Open `renderer-3d.html` in a browser with WebGL enabled. Keep the `css/` and `js/`
+On a computer, open `renderer-3d.html` in a browser with WebGL enabled. Keep the `css/` and `js/`
 folders alongside it. No installation, server, internet connection, or build
 step is required. The page can also be served by any static web server.
+
+### Phone or single-file copy
+
+Some phone browsers and file viewers cannot load neighboring CSS and JavaScript
+files from an opened local document. Generate a self-contained version on your
+computer with Node.js 18 or newer:
+
+```sh
+npm run build
+```
+
+Copy **`dist/forma-3d.html`** to the phone and open it in a browser that runs
+JavaScript and supports WebGL. This file contains all styles and scripts; you
+do not need to copy the `css/` or `js/` folders. No package installation is
+needed to build it. Run the command again after changing the application.
+
+If the phone opens the file in a document preview that does not run JavaScript,
+the bundled version still needs to be opened in a suitable browser or accessed
+as a page served over HTTP. Bundling fixes missing companion files; it cannot
+add JavaScript execution or WebGL support to a file viewer.
 
 The interface is in Polish, with a responsive layout, camera controls, surface
 settings, and PNG export. Surfaces start without triangle lines; choose
@@ -73,24 +93,25 @@ equation.
 
 ## Project structure
 
-| File                      | Responsibility                                                 |
-| ------------------------- | -------------------------------------------------------------- |
-| `renderer-3d.html`        | Page structure and accessible controls                         |
-| `css/styles.css`          | Appearance, responsive layouts, and reduced-motion rules       |
-| `js/equation-parser.js`   | Expression tokenization and safe equation evaluation           |
-| `js/geometry.js`          | Explicit surface meshes and marching tetrahedra                |
-| `js/sections.js`          | Triangle/plane intersections and cutting-plane geometry        |
-| `js/state.js`             | DOM references, presets, shared state, and camera defaults     |
-| `js/renderer.js`          | WebGL setup, shaders, buffers, matrices, and drawing           |
-| `js/equations.js`         | Equation records, visibility, labels, and GPU resource cleanup |
-| `js/picking.js`           | Screen rays, matrix inversion, and mesh triangle intersections |
-| `js/inspector.js`         | Point selection, pins, coordinate readout, and markers         |
-| `js/cross-section.js`     | Section controls, contour buffers, and the 2D preview          |
-| `js/ui.js`                | Messages, mode selection, domain display, and mesh rebuilding  |
-| `js/controls.js`          | Mouse, touch, keyboard, form, and settings handlers            |
-| `js/export.js`            | PNG creation and download                                      |
-| `js/main.js`              | Animation loop, lifecycle events, and startup                  |
-| `tests/renderer.test.cjs` | Parser, geometry, and script-loading regression checks         |
+| File                           | Responsibility                                                 |
+| ------------------------------ | -------------------------------------------------------------- |
+| `renderer-3d.html`             | Page structure and accessible controls                         |
+| `css/styles.css`               | Appearance, responsive layouts, and reduced-motion rules       |
+| `js/equation-parser.js`        | Expression tokenization and safe equation evaluation           |
+| `js/geometry.js`               | Explicit surface meshes and marching tetrahedra                |
+| `js/sections.js`               | Triangle/plane intersections and cutting-plane geometry        |
+| `js/state.js`                  | DOM references, presets, shared state, and camera defaults     |
+| `js/renderer.js`               | WebGL setup, shaders, buffers, matrices, and drawing           |
+| `js/equations.js`              | Equation records, visibility, labels, and GPU resource cleanup |
+| `js/picking.js`                | Screen rays, matrix inversion, and mesh triangle intersections |
+| `js/inspector.js`              | Point selection, pins, coordinate readout, and markers         |
+| `js/cross-section.js`          | Section controls, contour buffers, and the 2D preview          |
+| `js/ui.js`                     | Messages, mode selection, domain display, and mesh rebuilding  |
+| `js/controls.js`               | Mouse, touch, keyboard, form, and settings handlers            |
+| `js/export.js`                 | PNG creation and download                                      |
+| `js/main.js`                   | Animation loop, lifecycle events, and startup                  |
+| `tests/renderer.test.cjs`      | Parser, geometry, and script-loading regression checks         |
+| `scripts/build-standalone.cjs` | Generate the self-contained HTML distribution                  |
 
 Scripts load in the order listed in the HTML, using `defer` so the DOM is ready
 before they run. They are classic scripts sharing one scope, with mutable state
