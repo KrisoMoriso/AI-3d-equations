@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Interaktywny renderer równań 3D. Jeden plik, działający offline."
+    />
+    <title>Forma — renderer równań 3D</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script src="js/equation-parser.js" defer></script>
+    <script src="js/geometry.js" defer></script>
+    <script src="js/sections.js" defer></script>
+    <script src="js/state.js" defer></script>
+    <script src="js/renderer.js" defer></script>
+    <script src="js/equations.js" defer></script>
+    <script src="js/picking.js" defer></script>
+    <script src="js/inspector.js" defer></script>
+    <script src="js/cross-section.js" defer></script>
+    <script src="js/ui.js" defer></script>
+    <script src="js/controls.js" defer></script>
+    <script src="js/export.js" defer></script>
+    <script src="js/main.js" defer></script>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="brand">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path
+              d="m16 2 13 8v13l-13 7L3 23V10zM3 10l13 8 13-8M16 18v12M16 2v8l-7 4m7-4 7 4"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            /></svg
+          ><strong
+            >forma<span
+              style="color: var(--green); border: 0; padding: 0; margin: 0; font-size: 23px"
+              >.</span
+            ></strong
+          ><span>PRZESTRZEŃ DLA MATEMATYKI</span>
+        </div>
+        <div class="offline"><i></i>DZIAŁA OFFLINE</div>
+      </header>
+      <main class="layout">
+        <aside>
+          <div class="eyebrow">Renderer równań 3D</div>
+          <h1>Zobacz swoje równanie.</h1>
+          <p class="intro">
+            Zamień matematyczny zapis w przestrzeń.<br />Wpisz równanie i odkryj jego kształt.
+          </p>
+          <form id="equationForm">
+            <div class="equations" id="equations"></div>
+            <button class="add-equation" type="button" id="addEquation">+ Dodaj równanie</button>
+            <p class="hint">
+              Porównuj powierzchnie we wspólnym widoku. Kliknij pole równania, do którego chcesz
+              wstawić przykład.
+            </p>
+            <button class="primary" type="submit" id="renderButton">
+              <span>Renderuj powierzchnie &nbsp;↗</span><kbd>Enter</kbd>
+            </button>
+          </form>
+          <template id="equationTemplate">
+            <fieldset class="equation-card">
+              <legend data-field="title"></legend>
+              <div class="equation-tools">
+                <label class="color-control">Kolor <input data-field="color" type="color" /></label>
+                <label class="visibility-control"
+                  ><input data-field="visible" type="checkbox" checked /> Pokaż</label
+                >
+                <button data-field="remove" class="remove-equation" type="button">Usuń</button>
+              </div>
+              <label class="equation-mode-label"
+                >Typ równania
+                <select data-field="mode">
+                  <option value="explicit">z = f(x, y)</option>
+                  <option value="implicit">F(x, y, z) = 0</option>
+                </select>
+              </label>
+              <label data-field="inputLabel">Równanie</label>
+              <input
+                class="equation-input"
+                data-field="input"
+                type="text"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                maxlength="300"
+              />
+              <p class="hint" data-field="hint"></p>
+              <p class="equation-message" data-field="message" role="status" aria-live="polite"></p>
+            </fieldset>
+          </template>
+          <section class="section">
+            <h2 class="section-title">Ustawienia przestrzeni</h2>
+            <div class="settings-block">
+              <div class="row">
+                <label for="domain">Zakres osi x, y, z</label
+                ><output id="domainValue" for="domain">−6 … 6</output>
+              </div>
+              <input type="range" id="domain" min="2" max="12" step="0.5" value="6" />
+            </div>
+            <div class="settings-block">
+              <div class="row">
+                <label for="quality">Szczegółowość</label
+                ><select id="quality">
+                  <option value="low">Niska</option>
+                  <option value="medium" selected>Średnia</option>
+                  <option value="high">Wysoka</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-block">
+              <div class="row">
+                <label for="style">Sposób wyświetlania</label
+                ><select id="style">
+                  <option value="solid" selected>Powierzchnia</option>
+                  <option value="surface">Powierzchnia + siatka</option>
+                  <option value="wire">Siatka</option>
+                </select>
+              </div>
+            </div>
+            <div class="checks">
+              <label><input id="grid" type="checkbox" checked /> Siatka osi</label
+              ><label><input id="axes" type="checkbox" checked /> Osie</label>
+            </div>
+          </section>
+          <section class="section" aria-labelledby="sectionHeading">
+            <h2 class="section-title" id="sectionHeading">Przekrój powierzchni</h2>
+            <div class="checks">
+              <label><input id="sectionEnabled" type="checkbox" /> Pokaż przekrój</label>
+              <label><input id="sectionPlane" type="checkbox" checked /> Płaszczyzna</label>
+            </div>
+            <div class="row section-axis-row">
+              <label for="sectionAxis">Płaszczyzna</label>
+              <select id="sectionAxis">
+                <option value="z" selected>z = a (pozioma)</option>
+                <option value="x">x = a</option>
+                <option value="y">y = a</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="sectionPosition">Położenie</label>
+              <output id="sectionPositionValue" for="sectionPosition">z = 0.00</output>
+            </div>
+            <input id="sectionPosition" type="range" min="-6" max="6" step="0.01" value="0" />
+            <button id="sectionZero" class="small-btn" type="button">Wróć do a = 0</button>
+            <p class="hint" id="sectionAxes">Osie przekroju: x, y.</p>
+            <canvas
+              id="sectionPreview"
+              class="section-preview"
+              width="520"
+              height="360"
+              role="img"
+              aria-label="Dwuwymiarowy podgląd przekroju powierzchni"
+              aria-describedby="sectionAxes sectionStatus"
+            ></canvas>
+            <p class="hint" id="sectionStatus" role="status" aria-live="polite"></p>
+            <ul class="section-summary" id="sectionSummary"></ul>
+            <p class="hint">
+              Przesuwaj płaszczyznę, aby zobaczyć zmianę kształtu przekroju. Wynik jest przybliżony;
+              dokładność zależy od szczegółowości powierzchni.
+            </p>
+          </section>
+          <section class="section" aria-labelledby="pointsHeading">
+            <div class="row">
+              <h2 class="section-title" id="pointsHeading">Przypięte punkty</h2>
+              <button class="small-btn" id="clearPinnedPoints" type="button" disabled>
+                Wyczyść
+              </button>
+            </div>
+            <p class="hint" id="pointsEmpty">
+              Kliknij powierzchnię i wybierz „Przypnij punkt”, aby porównać współrzędne kilku
+              punktów.
+            </p>
+            <ul class="pinned-points" id="pinnedPoints" aria-labelledby="pointsHeading"></ul>
+            <p class="hint">
+              Współrzędne są przybliżone. Renderowanie zmienionego równania lub usunięcie
+              powierzchni usuwa jej punkty.
+            </p>
+          </section>
+          <section class="section" aria-labelledby="presetsHeading">
+            <h2 class="section-title" id="presetsHeading">Odkryj kształty</h2>
+            <p class="hint" id="presetTarget"></p>
+            <div class="presets" id="presets">
+              <button class="preset active" data-preset="ripple">
+                <span>Fala radialna</span><small>sin(√(x² + y²))</small>
+              </button>
+              <button class="preset" data-preset="saddle">
+                <span>Siodło</span><small>(x² − y²) / 4</small>
+              </button>
+              <button class="preset" data-preset="waves">
+                <span>Interferencja</span><small>sin(x) · cos(y)</small>
+              </button>
+              <button class="preset" data-preset="gauss">
+                <span>Rozkład Gaussa</span><small>3 · exp(−(x²+y²)/4)</small>
+              </button>
+              <button class="preset" data-preset="sphere">
+                <span>Sfera</span><small>x² + y² + z² = 9</small>
+              </button>
+              <button class="preset" data-preset="torus">
+                <span>Torus</span><small>(√(x²+y²)−2)²+z²=1</small>
+              </button>
+              <button class="preset" data-preset="paraboloid">
+                <span>Paraboloida</span><small>(x² + y²) / 4</small>
+              </button>
+              <button class="preset" data-preset="cone">
+                <span>Stożek</span><small>√(x² + y²)</small>
+              </button>
+              <button class="preset" data-preset="monkey-saddle">
+                <span>Małpie siodło</span><small>(x³ − 3xy²) / 9</small>
+              </button>
+              <button class="preset" data-preset="ellipsoid">
+                <span>Elipsoida</span><small>x²/9 + y²/4 + z² = 1</small>
+              </button>
+              <button class="preset" data-preset="hyperboloid">
+                <span>Hiperboloida</span><small>x² + y² − z² = 1</small>
+              </button>
+              <button class="preset" data-preset="rounded-cube">
+                <span>Zaokrąglony sześcian</span><small>x⁴ + y⁴ + z⁴ = 16</small>
+              </button>
+            </div>
+            <div class="preset-explanation" id="presetExplanation" aria-live="polite" hidden>
+              <h3 id="presetTitle"></h3>
+              <p id="presetDescription"></p>
+              <p class="preset-experiment">
+                <strong>Spróbuj:</strong> <span id="presetExperiment"></span>
+              </p>
+            </div>
+          </section>
+          <details>
+            <summary>Jak zapisać równanie?</summary>
+            <p>
+              Zmienne: <code>x, y</code>, a w trybie F także <code>z</code>. Stałe:
+              <code>pi, e</code>. Operatory: <code>+ − * / ^</code> i nawiasy. Możesz pisać
+              <code>2x</code>, <code>xy</code> lub <code>2(x+y)</code>.
+            </p>
+            <p>
+              Funkcje:
+              <code
+                >sin, cos, tan, asin, acos, atan, atan2, sinh, cosh, tanh, sqrt, abs, exp, log, ln,
+                log10, floor, ceil, round, sign, min, max, pow</code
+              >. Kąty podawaj w radianach; <code>log</code> i <code>ln</code> to logarytm naturalny.
+            </p>
+            <p>
+              W trybie F wpisz wyrażenie równe zero albo całe równanie, np.
+              <code>x^2+y^2+z^2=9</code>. Widoczna jest część powierzchni w wybranym zakresie osi.
+              Nieciągłości mogą wymagać zwiększenia szczegółowości.
+            </p>
+            <p>
+              Sterowanie: przeciągnij, aby obracać; Shift + przeciągnięcie, aby przesuwać; kółko
+              myszy lub gest szczypania, aby przybliżać. Strzałki obracają widok, +/− zmieniają
+              przybliżenie, a R resetuje kamerę, gdy wykres ma fokus. Kliknij lub dotknij
+              powierzchni, aby odczytać współrzędne punktu; Escape czyści wybór.
+            </p>
+          </details>
+          <footer>Jeden plik. Bez instalacji. Obliczenia na Twoim urządzeniu.</footer>
+        </aside>
+        <section class="workspace" aria-label="Wizualizacja równania">
+          <div class="workspace-head">
+            <div>
+              <h2>Twoja przestrzeń</h2>
+              <p>Każde równanie ma swój kształt.</p>
+            </div>
+            <div class="head-actions">
+              <button class="small-btn" id="reset" title="Przywróć kamerę">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 8a6 6 0 1 1 .5 6M4 3v5h5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  /></svg
+                >Reset widoku</button
+              ><button class="small-btn" id="export">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  /></svg
+                >Zapisz PNG
+              </button>
+            </div>
+          </div>
+          <div class="viewport" id="viewport">
+            <canvas
+              id="canvas"
+              tabindex="0"
+              aria-label="Interaktywny wykres 3D. Kliknij lub dotknij powierzchni, aby zbadać punkt. Przeciągnij, aby obracać, lub użyj strzałek; plus i minus przybliżają, Escape czyści wybór."
+            ></canvas>
+            <div class="view-top">
+              <div class="equation-tag" id="equationTag">z = sin(sqrt(x^2 + y^2))</div>
+              <div class="badge">PERSPEKTYWA</div>
+            </div>
+            <div class="section-tag" id="sectionTag" hidden></div>
+            <div class="view-controls">
+              <button id="zoomIn" title="Przybliż" aria-label="Przybliż">+</button
+              ><button id="zoomOut" title="Oddal" aria-label="Oddal">−</button
+              ><button
+                id="rotate"
+                title="Automatyczny obrót"
+                aria-label="Automatyczny obrót"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M4 8a6 6 0 1 1 .5 6M4 3v5h5" stroke="currentColor" stroke-width="1.5" />
+                </svg>
+              </button>
+            </div>
+            <span class="axis-label axis-x" id="labelX">x</span
+            ><span class="axis-label axis-y" id="labelY">y</span
+            ><span class="axis-label axis-z" id="labelZ">z</span>
+            <div class="gesture">
+              <span>↔ Przeciągnij, aby obracać</span><span>⊙ Przewiń, aby przybliżyć</span>
+              <span>Kliknij powierzchnię, aby zbadać punkt</span>
+            </div>
+            <div class="point-inspector" id="pointInspector" aria-live="polite" hidden>
+              <strong id="pointEquation"></strong>
+              <output id="pointCoordinates"></output>
+              <div class="point-actions">
+                <button class="small-btn" id="pinPoint" type="button" disabled>
+                  Przypnij punkt
+                </button>
+                <button class="small-btn" id="clearSelectedPoint" type="button">
+                  Wyczyść wybór
+                </button>
+              </div>
+            </div>
+            <div class="legend">
+              <span>Wysokość z</span>
+              <div class="legend-bar"></div>
+              <div class="legend-labels">
+                <span id="zMin">−1.00</span><span id="zMax">1.00</span>
+              </div>
+            </div>
+            <div class="fatal" id="fatal" role="alert">
+              <strong>Nie można uruchomić widoku 3D</strong>
+              <p id="fatalText">
+                Twoja przeglądarka nie udostępnia WebGL. Włącz akcelerację sprzętową lub otwórz plik
+                w aktualnej przeglądarce.
+              </p>
+            </div>
+          </div>
+          <div class="status-bar" aria-live="polite">
+            <span
+              ><i class="status-light"></i
+              ><strong id="meshStatus">Przygotowywanie powierzchni…</strong></span
+            ><span id="renderTime">WebGL · obliczenia lokalne</span>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+  </body>
+</html>

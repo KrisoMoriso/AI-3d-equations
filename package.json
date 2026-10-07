@@ -1,0 +1,14 @@
+{
+  "name": "forma-3d-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline WebGL renderer for explicit and implicit mathematical surfaces.",
+  "scripts": {
+    "test": "node --test tests/renderer.test.cjs",
+    "format": "prettier --write renderer-3d.html css js tests README.md package.json .prettierrc.json",
+    "format:check": "prettier --check renderer-3d.html css js tests README.md package.json .prettierrc.json"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}
